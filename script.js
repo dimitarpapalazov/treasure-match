@@ -3,7 +3,7 @@ levelOne.preload = preload;
 levelOne.create = create;
 levelOne.update = update;
 
-var game = new Phaser.Game(390, 390, Phaser.AUTO, "", levelOne);
+var game = new Phaser.Game(500, 500, Phaser.AUTO, "", levelOne);
 
 function preload() {
   game.load.image("red", "./assets/red_gem.png");
@@ -12,6 +12,7 @@ function preload() {
   game.load.image("yellow", "./assets/yellow_gem.png");
   game.load.image("orange", "./assets/orange_gem.png");
   game.load.image("purple", "./assets/purple_gem.png");
+  game.load.image("background", "./assets/background.png");
 }
 
 const redPercentage = 0.29;
@@ -20,13 +21,52 @@ const bluePercentage = 0.72;
 const yellowPercentage = 0.86;
 const orangePercentage = 0.96;
 const purplePercentage = 1;
+const startingPositionX = 105;
+const startingPositionY = 5;
+const rows = 10;
+const columns = 10;
+const gemSideSize = 39;
+const goalColor = "red";
 
 let gems;
 let selectedGem;
-let positionX = 0;
-let positionY = 0;
+let moves = 20;
+let goal = 20;
+let score = 0;
+let movesText;
+let goalText;
+let scoreText;
+let started = false;
 
 function create() {
+  game.add.tileSprite(0, 0, 500, 500, "background");
+
+  game.add.text(5, 70, "Moves:", {
+    fontSize: "30px",
+    fill: "black",
+  });
+  movesText = game.add.text(35, 100, moves, {
+    fontSize: "30px",
+    fill: "black",
+  });
+
+  game.add.text(5, 205, "Goal:", {
+    fontSize: "30px",
+    fill: "black",
+  });
+  goalText = game.add.text(35, 235, goal, {
+    fontSize: "30px",
+    fill: "black",
+  });
+
+  game.add.text(5, 405, "Score:", {
+    fontSize: "30px",
+    fill: "black",
+  });
+  scoreText = game.add.text(35, 435, score, {
+    fontSize: "30px",
+    fill: "black",
+  });
   generateGems();
   destroyThrees();
 }
@@ -35,80 +75,52 @@ function update() {}
 
 function generateGems() {
   gems = game.add.group();
-  for (let i = 1; i <= 100; i++) {
-    let random = Math.random();
-    let gem;
 
-    if (random < redPercentage) {
-      gem = gems.create(positionX, positionY, "red");
-    } else if (random >= redPercentage && random < greenPercentage) {
-      gem = gems.create(positionX, positionY, "green");
-    } else if (random >= greenPercentage && random < bluePercentage) {
-      gem = gems.create(positionX, positionY, "blue");
-    } else if (random >= bluePercentage && random < yellowPercentage) {
-      gem = gems.create(positionX, positionY, "yellow");
-    } else if (random >= yellowPercentage && random < orangePercentage) {
-      gem = gems.create(positionX, positionY, "orange");
-    } else {
-      gem = gems.create(positionX, positionY, "purple");
+  let positionX = startingPositionX;
+  let positionY = startingPositionY;
+
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < columns; j++) {
+      let random = Math.random();
+      let gem;
+
+      if (random < redPercentage) {
+        gem = gems.create(positionX, positionY, "red");
+        gem.score = 10;
+      } else if (random >= redPercentage && random < greenPercentage) {
+        gem = gems.create(positionX, positionY, "green");
+        gem.score = 20;
+      } else if (random >= greenPercentage && random < bluePercentage) {
+        gem = gems.create(positionX, positionY, "blue");
+        gem.score = 30;
+      } else if (random >= bluePercentage && random < yellowPercentage) {
+        gem = gems.create(positionX, positionY, "yellow");
+        gem.score = 40;
+      } else if (random >= yellowPercentage && random < orangePercentage) {
+        gem = gems.create(positionX, positionY, "orange");
+        gem.score = 50;
+      } else {
+        gem = gems.create(positionX, positionY, "purple");
+        gem.score = 60;
+      }
+
+      gem.i = i;
+      gem.j = j;
+
+      gem.inputEnabled = true;
+      gem.events.onInputDown.add(selectGem, this);
+      gem.events.onInputUp.add(releaseGem);
+
+      gem.killed = false;
+
+      positionX += gemSideSize;
+
+      if (j === 9) {
+        positionY += gemSideSize;
+        positionX = startingPositionX;
+      }
     }
-
-    gem.inputEnabled = true;
-    gem.events.onInputDown.add(selectGem, this);
-    gem.events.onInputUp.add(releaseGem);
-
-    positionX += 39;
-
-    if (i % 10 === 0) {
-      positionY += 39;
-      positionX = 0;
-    }
   }
-}
-
-function destroyThrees() {
-  let destroyed = false;
-
-  for (let i = 0; i < 100; i++) {
-    if (gems.getAt(i).alive) {
-      destroyed = destroyToRight(i) || destroyToDown(i) || destroyed;
-    }
-  }
-
-  if (destroyed) {
-    destroyThrees();
-  }
-
-  return destroyed;
-}
-
-function destroyToDown(i) {
-  if (
-    i % 100 < 80 &&
-    gems.getAt(i).key === gems.getAt(i + 10).key &&
-    gems.getAt(i).key === gems.getAt(i + 20).key
-  ) {
-    gems.getAt(i).kill();
-    gems.getAt(i + 10).kill();
-    gems.getAt(i + 20).kill();
-    return true;
-  }
-  return false;
-}
-
-function destroyToRight(i) {
-  if (
-    i % 10 < 8 &&
-    gems.getAt(i).key === gems.getAt(i + 1).key &&
-    gems.getAt(i).key === gems.getAt(i + 2).key
-  ) {
-    gems.getAt(i).kill();
-    gems.getAt(i + 1).kill();
-    gems.getAt(i + 2).kill();
-
-    return true;
-  }
-  return false;
 }
 
 function selectGem(gem) {
@@ -116,44 +128,223 @@ function selectGem(gem) {
 }
 
 function releaseGem() {
-  let y = Math.floor(game.input.mousePointer.position.y / 39);
-  let x = Math.floor(game.input.mousePointer.position.x / 39);
+  let i = Math.floor(
+    (game.input.mousePointer.position.y - startingPositionY) / gemSideSize
+  );
+  let j = Math.floor(
+    (game.input.mousePointer.position.x - startingPositionX) / gemSideSize
+  );
+  playerSwap(selectedGem, getGem(i, j));
+}
 
-  playerSwap(selectedGem, gems.getAt(y * 10 + x));
+function getGem(i, j) {
+  let g = null;
+  gems.forEach((gem) => {
+    if (gem.i == i && gem.j == j) g = gem;
+  });
+  return g;
 }
 
 function playerSwap(gemOne, gemTwo) {
-  if (!isSwapValid(gems.getChildIndex(gemOne), gems.getChildIndex(gemTwo)))
-    return;
+  started = true;
+  if (!isSwapValid(gemOne, gemTwo)) return;
+  moves--;
+  updateMoves();
+
   swapGems(gemOne, gemTwo);
 
-  if (!destroyThrees()) {
-    swapGems(gemOne, gemTwo);
-  }
+  destroyThrees();
+}
+
+function isSwapValid(gemOne, gemTwo) {
+  if (gemOne.i - 1 === gemTwo.i && gemOne.j === gemTwo.j) return true;
+  else if (gemOne.i + 1 === gemTwo.i && gemOne.j === gemTwo.j) return true;
+  else if (gemOne.j - 1 === gemTwo.j && gemOne.i === gemTwo.i) return true;
+  else if (gemOne.j + 1 === gemTwo.j && gemOne.i === gemTwo.i) return true;
+  else return false;
+}
+
+function updateMoves() {
+  movesText.text = moves;
 }
 
 function swapGems(gemOne, gemTwo) {
-  gems.swap(gemOne, gemTwo);
-  swapAnimation(
-    gemOne,
-    gemTwo,
-    gemOne.position.x,
-    gemOne.position.y,
-    gemTwo.position.x,
-    gemTwo.position.y
-  );
+  swapAnimation(gemOne, gemTwo, gemOne.i, gemOne.j, gemTwo.i, gemTwo.j);
 }
 
-function swapAnimation(gemOne, gemTwo, x1, y1, x2, y2) {
-  game.add.tween(gemOne).to({ x: x2, y: y2 }, 1000, null, false).start();
-  game.add.tween(gemTwo).to({ x: x1, y: y1 }, 1000, null, false).start();
+function swapAnimation(gemOne, gemTwo, i1, j1, i2, j2) {
+  gemOne.i = i2;
+  gemOne.j = j2;
+  moveGem(gemOne, i2, j2);
+
+  gemTwo.i = i1;
+  gemTwo.j = j1;
+  moveGem(gemTwo, i1, j1);
 }
 
-function isSwapValid(indexOne, indexTwo) {
-  return (
-    indexOne - 1 === indexTwo ||
-    indexOne + 1 === indexTwo ||
-    indexOne - 10 === indexTwo ||
-    indexOne + 10 === indexTwo
-  );
+function moveGem(gem, i, j) {
+  let x = j * gemSideSize + startingPositionX;
+  let y = i * gemSideSize + startingPositionY;
+  game.add
+    .tween(gem)
+    .to(
+      {
+        x: x,
+        y: y,
+      },
+      500,
+      "Linear",
+      true
+    )
+    .start();
+}
+
+function destroyThrees() {
+  destroyed = false;
+
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < columns; j++) {
+      let gem = getGem(i, j);
+      if (gem != null) {
+        destroyed = destroyToRight(gem) || destroyToDown(gem) || destroyed;
+      }
+    }
+  }
+
+  if (destroyed) {
+    align();
+    destroyThrees();
+  }
+
+  return destroyed;
+}
+
+function destroyToDown(gem) {
+  let g1 = getGem(gem.i + 1, gem.j);
+  let g2 = getGem(gem.i + 2, gem.j);
+  if (g1 != null && g2 != null) {
+    if (gem.key === g1.key && gem.key === g2.key) {
+      kill(gem);
+      kill(g1);
+      kill(g2);
+      return true;
+    }
+    return false;
+  }
+  return false;
+}
+
+function destroyToRight(gem) {
+  let g1 = getGem(gem.i, gem.j + 1);
+  let g2 = getGem(gem.i, gem.j + 2);
+  if (g1 != null && g2 != null) {
+    if (gem.key === g1.key && gem.key === g2.key) {
+      kill(gem);
+      kill(g1);
+      kill(g2);
+      return true;
+    }
+    return false;
+  }
+  return false;
+}
+
+function kill(gem) {
+  if (started) {
+    score += gem.score;
+    goal -= gem.key === goalColor ? 1 : 0;
+
+    updateScore();
+    updateGoal();
+  }
+
+  game.add
+    .tween(gem)
+    .to(
+      {
+        alpha: 0,
+      },
+      1000,
+      "Linear",
+      true
+    )
+    .start();
+
+  gem.i = -1;
+  gem.j = -1;
+  gem.killed = true;
+  moveGem(gem, 11, 1);
+}
+
+function updateScore() {
+  scoreText.text = score;
+}
+
+function updateGoal() {
+  goalText.text = goal;
+}
+
+function align() {
+  for (let j = 0; j < columns; j++) {
+    let column = [];
+    for (let gem of gems.getAll("j", j)) {
+      column.push(gem);
+    }
+    column.sort((a, b) => a.i - b.i);
+    column.reverse();
+
+    let i = 9;
+    for (let gem of column) {
+      gem.i = i;
+      moveGem(gem, i, j);
+      i--;
+    }
+  }
+  createNewGems();
+}
+
+function createNewGems() {
+  for (let i = rows - 1; i >= 0; i--) {
+    for (let j = columns - 1; j >= 0; j--) {
+      if (!getGem(i, j)) {
+        createNewGem(i, j);
+      }
+    }
+  }
+}
+
+function createNewGem(i, j) {
+  let x = j * gemSideSize + startingPositionX;
+  let random = Math.random();
+  let gem;
+
+  if (random < redPercentage) {
+    gem = gems.create(x, startingPositionY - gemSideSize, "red");
+    gem.score = 10;
+  } else if (random >= redPercentage && random < greenPercentage) {
+    gem = gems.create(x, startingPositionY - gemSideSize, "green");
+    gem.score = 20;
+  } else if (random >= greenPercentage && random < bluePercentage) {
+    gem = gems.create(x, startingPositionY - gemSideSize, "blue");
+    gem.score = 30;
+  } else if (random >= bluePercentage && random < yellowPercentage) {
+    gem = gems.create(x, startingPositionY - gemSideSize, "yellow");
+    gem.score = 40;
+  } else if (random >= yellowPercentage && random < orangePercentage) {
+    gem = gems.create(x, startingPositionY - gemSideSize, "orange");
+    gem.score = 50;
+  } else {
+    gem = gems.create(x, startingPositionY - gemSideSize, "purple");
+    gem.score = 60;
+  }
+
+  gem.i = i;
+  gem.j = j;
+
+  gem.inputEnabled = true;
+  gem.events.onInputDown.add(selectGem, this);
+  gem.events.onInputUp.add(releaseGem);
+
+  gem.killed = false;
+  moveGem(gem, gem.i, gem.j);
 }
