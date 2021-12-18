@@ -1,8 +1,12 @@
-let levelOne = new Phaser.State();
-levelOne.preload = preload;
-levelOne.create = create;
+let levelOne = generateLevel("red", 20, 20);
+let levelTwo = generateLevel("green", 20, 20);
+let levelThree = generateLevel("orange", 20, 20, true);
 
-var game = new Phaser.Game(500, 500, Phaser.AUTO, "", levelOne);
+var game = new Phaser.Game(500, 500, Phaser.AUTO);
+game.state.add("levelOne", levelOne);
+game.state.add("levelTwo", levelTwo);
+game.state.add("levelThree", levelThree);
+game.state.start("levelThree");
 
 function preload() {
   game.load.image("red", "./assets/red_gem.png");
@@ -11,6 +15,7 @@ function preload() {
   game.load.image("yellow", "./assets/yellow_gem.png");
   game.load.image("orange", "./assets/orange_gem.png");
   game.load.image("purple", "./assets/purple_gem.png");
+  game.load.image("white", "./assets/white_gem.png");
   game.load.image("background", "./assets/background.png");
 }
 
@@ -25,12 +30,9 @@ const startingPositionY = 5;
 const rows = 10;
 const columns = 10;
 const gemSideSize = 39;
-const goalColor = "red";
 
 let gems;
 let selectedGem;
-let moves = 20;
-let goal = 20;
 let score = 0;
 let movesText;
 let goalText;
@@ -43,29 +45,30 @@ function create() {
   game.add.tileSprite(0, 0, 500, 500, "background");
 
   game.add.text(5, 70, "Moves:", {
-    fontSize: "30px",
+    fontSize: "28px",
     fill: "black",
   });
-  movesText = game.add.text(35, 100, moves, {
-    fontSize: "30px",
+  movesText = game.add.text(35, 100, game.state.getCurrentState().moves, {
+    fontSize: "28px",
     fill: "black",
   });
 
   game.add.text(5, 205, "Goal:", {
-    fontSize: "30px",
+    fontSize: "28px",
     fill: "black",
   });
-  goalText = game.add.text(35, 235, goal, {
-    fontSize: "30px",
+  game.add.sprite(5, 240, game.state.getCurrentState().goalColor);
+  goalText = game.add.text(50, 240, game.state.getCurrentState().goal, {
+    fontSize: "28px",
     fill: "black",
   });
 
-  game.add.text(5, 405, "Score:", {
-    fontSize: "30px",
+  game.add.text(5, 410, "Score:", {
+    fontSize: "28px",
     fill: "black",
   });
-  scoreText = game.add.text(35, 435, score, {
-    fontSize: "30px",
+  scoreText = game.add.text(35, 445, score, {
+    fontSize: "28px",
     fill: "black",
   });
   generateGems();
@@ -77,30 +80,44 @@ function generateGems() {
 
   let positionX = startingPositionX;
   let positionY = startingPositionY;
+  let hasSpecialObject = game.state.getCurrentState().specialObject;
+  let iSpecial;
+  let jSpecial;
+
+  if (hasSpecialObject) {
+    iSpecial = Math.floor(Math.random() * 10);
+    jSpecial = Math.floor(Math.random() * 10);
+  }
 
   for (let i = 0; i < rows; i++) {
     for (let j = 0; j < columns; j++) {
       let random = Math.random();
       let gem;
 
-      if (random < redPercentage) {
-        gem = gems.create(positionX, positionY, "red");
-        gem.score = 10;
-      } else if (random >= redPercentage && random < greenPercentage) {
-        gem = gems.create(positionX, positionY, "green");
-        gem.score = 20;
-      } else if (random >= greenPercentage && random < bluePercentage) {
-        gem = gems.create(positionX, positionY, "blue");
-        gem.score = 30;
-      } else if (random >= bluePercentage && random < yellowPercentage) {
-        gem = gems.create(positionX, positionY, "yellow");
-        gem.score = 40;
-      } else if (random >= yellowPercentage && random < orangePercentage) {
-        gem = gems.create(positionX, positionY, "orange");
-        gem.score = 50;
+      if (hasSpecialObject && iSpecial === i && jSpecial === j) {
+        gem = gems.create(positionX, positionY, "white");
+        gem.score = 100;
+        gem.special = true;
       } else {
-        gem = gems.create(positionX, positionY, "purple");
-        gem.score = 60;
+        if (random < redPercentage) {
+          gem = gems.create(positionX, positionY, "red");
+          gem.score = 10;
+        } else if (random >= redPercentage && random < greenPercentage) {
+          gem = gems.create(positionX, positionY, "green");
+          gem.score = 20;
+        } else if (random >= greenPercentage && random < bluePercentage) {
+          gem = gems.create(positionX, positionY, "blue");
+          gem.score = 30;
+        } else if (random >= bluePercentage && random < yellowPercentage) {
+          gem = gems.create(positionX, positionY, "yellow");
+          gem.score = 40;
+        } else if (random >= yellowPercentage && random < orangePercentage) {
+          gem = gems.create(positionX, positionY, "orange");
+          gem.score = 50;
+        } else {
+          gem = gems.create(positionX, positionY, "purple");
+          gem.score = 60;
+        }
       }
 
       gem.i = i;
@@ -147,10 +164,14 @@ function getGem(i, j) {
 function playerSwap(gemOne, gemTwo) {
   started = true;
   if (!isSwapValid(gemOne, gemTwo)) return;
-  moves--;
+  game.state.getCurrentState().moves--;
   updateMoves();
 
   swapGems(gemOne, gemTwo);
+
+  if (gemOne.special) {
+    setTimeout(specialDestroy, 500, gemOne);
+  }
 
   let check = destroy(true);
 
@@ -159,6 +180,21 @@ function playerSwap(gemOne, gemTwo) {
   setTimeout(destroy, 500);
 
   // TODO: ако е невалидно, не се прај destroy
+}
+
+function specialDestroy(gemOne) {
+  let i = gemOne.i;
+  let j = gemOne.j;
+
+  const gemsToDestroy = [];
+
+  for (let z = 0; z < rows; z++) {
+    gemsToDestroy.push(getGem(i, z));
+    gemsToDestroy.push(getGem(z, j));
+  }
+
+  for (let gem of gemsToDestroy) kill(gem);
+  align();
 }
 
 function isSwapValid(gemOne, gemTwo) {
@@ -170,15 +206,16 @@ function isSwapValid(gemOne, gemTwo) {
 }
 
 function updateMoves() {
-  if (moves === 0) console.log("end"); // end game here
-  movesText.text = moves;
+  if (game.state.getCurrentState().moves === 0) console.log("end"); // end game here
+  movesText.text = game.state.getCurrentState().moves;
 }
 
 function swapGems(gemOne, gemTwo) {
-  swapAnimation(gemOne, gemTwo, gemOne.i, gemOne.j, gemTwo.i, gemTwo.j);
-}
+  let i1 = gemOne.i;
+  let j1 = gemOne.j;
+  let i2 = gemTwo.i;
+  let j2 = gemTwo.j;
 
-function swapAnimation(gemOne, gemTwo, i1, j1, i2, j2) {
   gemOne.i = i2;
   gemOne.j = j2;
   moveGem(gemOne, i2, j2);
@@ -290,7 +327,8 @@ function similarToDown(gem) {
 function kill(gem) {
   if (started && !gem.killed) {
     score += gem.score;
-    goal -= gem.key === goalColor ? 1 : 0;
+    game.state.getCurrentState().goal -=
+      gem.key === game.state.getCurrentState().goalColor ? 1 : 0;
 
     updateScore();
     updateGoal();
@@ -319,12 +357,11 @@ function updateScore() {
 }
 
 function updateGoal() {
-  if (goal < 0) {
-    goal = 0;
-    goalText.text = goal;
+  if (game.state.getCurrentState().goal < 0) {
+    game.state.getCurrentState().goal = 0;
     // end level
   }
-  goalText.text = goal;
+  goalText.text = game.state.getCurrentState().goal;
 }
 
 function align() {
@@ -390,4 +427,18 @@ function createNewGem(i, j) {
 
   gem.killed = false;
   moveGem(gem, gem.i, gem.j);
+}
+
+function generateLevel(goalColor, goal, moves, specialObject = false) {
+  const object = new Phaser.State();
+
+  object.goalColor = goalColor;
+  object.goal = goal;
+  object.moves = moves;
+  object.specialObject = specialObject;
+
+  object.preload = preload;
+  object.create = create;
+
+  return object;
 }
