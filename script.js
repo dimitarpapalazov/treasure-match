@@ -69,7 +69,7 @@ function create() {
     fill: "black",
   });
   generateGems();
-  destroyThrees();
+  destroy();
 }
 
 function generateGems() {
@@ -152,7 +152,11 @@ function playerSwap(gemOne, gemTwo) {
 
   swapGems(gemOne, gemTwo);
 
-  setTimeout(destroyThrees, 1000);
+  let check = destroy(true);
+
+  if (!check) setTimeout(swapGems, 1000, gemOne, gemTwo);
+
+  setTimeout(destroy, 500);
 
   // TODO: ако е невалидно, не се прај destroy
 }
@@ -166,6 +170,7 @@ function isSwapValid(gemOne, gemTwo) {
 }
 
 function updateMoves() {
+  if (moves === 0) console.log("end"); // end game here
   movesText.text = moves;
 }
 
@@ -193,65 +198,97 @@ function moveGem(gem, i, j) {
         x: x,
         y: y,
       },
-      500,
+      250,
       "Linear",
       true
     )
     .start();
 }
 
-function destroyThrees() {
-  destroyed = false;
+function destroy(check = false) {
+  let destroyed = false;
+  const gemsForDestroying = [];
 
   for (let i = 0; i < rows; i++) {
     for (let j = 0; j < columns; j++) {
       let gem = getGem(i, j);
       if (gem != null) {
-        destroyed = destroyToRight(gem) || destroyToDown(gem) || destroyed;
+        let right = similarToRight(gem);
+        let down = similarToDown(gem);
+
+        let destroyGem = false;
+
+        if (right.length > 2) {
+          destroyGem = true;
+          for (let g of right) {
+            gemsForDestroying.push(g);
+          }
+        }
+
+        if (down.length > 2) {
+          destroyGem = true;
+          for (let g of down) {
+            gemsForDestroying.push(g);
+          }
+        }
+
+        if (destroyGem) {
+          gemsForDestroying.push(gem);
+          destroyed = destroyGem;
+        }
       }
     }
   }
 
+  if (check) {
+    if (gemsForDestroying.length === 0) return false;
+    else return true;
+  }
+
+  for (let g of gemsForDestroying) {
+    kill(g);
+  }
+
   if (destroyed) {
-    setTimeout(align, 1000);
-    setTimeout(destroyThrees, 2000);
+    setTimeout(align, 500);
+    setTimeout(destroy, 1500);
   }
 
   return destroyed;
 }
 
-function destroyToDown(gem) {
-  let g1 = getGem(gem.i + 1, gem.j);
-  let g2 = getGem(gem.i + 2, gem.j);
-  if (g1 != null && g2 != null) {
-    if (gem.key === g1.key && gem.key === g2.key) {
-      kill(gem);
-      kill(g1);
-      kill(g2);
-      return true;
+function similarToRight(gem) {
+  const gemsToDestroyToRight = [];
+  let j = gem.j;
+  while (j < columns) {
+    let g = getGem(gem.i, j);
+    if (g !== null && g.key === gem.key) {
+      gemsToDestroyToRight.push(g);
+    } else {
+      break;
     }
-    return false;
+    j++;
   }
-  return false;
+  return gemsToDestroyToRight;
 }
 
-function destroyToRight(gem) {
-  let g1 = getGem(gem.i, gem.j + 1);
-  let g2 = getGem(gem.i, gem.j + 2);
-  if (g1 != null && g2 != null) {
-    if (gem.key === g1.key && gem.key === g2.key) {
-      kill(gem);
-      kill(g1);
-      kill(g2);
-      return true;
+function similarToDown(gem) {
+  const gemsToDestroyToDown = [];
+  let i = gem.i;
+  while (i < rows) {
+    let g = getGem(i, gem.j);
+    if (g !== null && g.key === gem.key) {
+      gemsToDestroyToDown.push(g);
+    } else {
+      break;
     }
-    return false;
+    i++;
   }
-  return false;
+  return gemsToDestroyToDown;
 }
 
 function kill(gem) {
-  if (started) {
+  if (started && !gem.killed) {
     score += gem.score;
     goal -= gem.key === goalColor ? 1 : 0;
 
@@ -282,12 +319,17 @@ function updateScore() {
 }
 
 function updateGoal() {
+  if (goal < 0) {
+    goal = 0;
+    goalText.text = goal;
+    // end level
+  }
   goalText.text = goal;
 }
 
 function align() {
   for (let j = 0; j < columns; j++) {
-    let column = [];
+    const column = [];
     for (let gem of gems.getAll("j", j)) {
       column.push(gem);
     }
@@ -308,7 +350,7 @@ function createNewGems() {
   for (let i = rows - 1; i >= 0; i--) {
     for (let j = columns - 1; j >= 0; j--) {
       if (!getGem(i, j)) {
-        createNewGem(i, j);
+        setTimeout(createNewGem, 500, i, j);
       }
     }
   }
