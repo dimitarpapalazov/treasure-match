@@ -153,7 +153,9 @@ function playerSwap(gemOne, gemTwo) {
 
   swapGems(gemOne, gemTwo);
 
-  destroyThrees();
+  setTimeout(destroyThrees, 1000);
+
+  // TODO: ако е невалидно, не се прај destroy
 }
 
 function isSwapValid(gemOne, gemTwo) {
