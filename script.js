@@ -1,7 +1,6 @@
 let levelOne = new Phaser.State();
 levelOne.preload = preload;
 levelOne.create = create;
-levelOne.update = update;
 
 var game = new Phaser.Game(500, 500, Phaser.AUTO, "", levelOne);
 
@@ -39,6 +38,8 @@ let scoreText;
 let started = false;
 
 function create() {
+  game.stage.disableVisibilityChange = true;
+
   game.add.tileSprite(0, 0, 500, 500, "background");
 
   game.add.text(5, 70, "Moves:", {
@@ -70,8 +71,6 @@ function create() {
   generateGems();
   destroyThrees();
 }
-
-function update() {}
 
 function generateGems() {
   gems = game.add.group();
@@ -214,8 +213,8 @@ function destroyThrees() {
   }
 
   if (destroyed) {
-    align();
-    destroyThrees();
+    setTimeout(align, 1000);
+    setTimeout(destroyThrees, 2000);
   }
 
   return destroyed;
