@@ -1,14 +1,50 @@
-let levelOne = generateLevel("red", 20, 20);
-let levelTwo = generateLevel("green", 20, 20);
-let levelThree = generateLevel("orange", 20, 20, true);
+let levelOne = generateLevel("red", 15, 15, 1, false, "levelTwo");
+let levelTwo = generateLevel("green", 15, 15, 2, false, "levelThree");
+let levelThree = generateLevel("orange", 15, 15, 3, true);
+let mainMenu = new Phaser.State();
+mainMenu.preload = preloadMainMenu;
+mainMenu.create = createMainMenu;
 
 var game = new Phaser.Game(500, 500, Phaser.AUTO);
+game.state.add("mainMenu", mainMenu);
 game.state.add("levelOne", levelOne);
 game.state.add("levelTwo", levelTwo);
 game.state.add("levelThree", levelThree);
-game.state.start("levelThree");
+game.state.start("mainMenu");
 
-function preload() {
+function preloadMainMenu() {
+  game.load.image("background", "./assets/background.png");
+  game.load.image("wood", "./assets/wood.png");
+  game.load.image("instructions", "./assets/instructions_button.png");
+  game.load.image("levelOne", "./assets/level_one_button.png");
+  game.load.image("levelTwo", "./assets/level_two_button.png");
+  game.load.image("levelThree", "./assets/level_three_button.png");
+}
+
+function createMainMenu() {
+  game.add.tileSprite(0, 0, 500, 500, "background");
+
+  game.add.tileSprite(100, 50, 300, 400, "wood");
+
+  game.add.text(140, 60, `Treasure Match`, {
+    fontSize: "30px",
+    fill: "white",
+    align: "center",
+  });
+
+  game.add.button(200, 125, "instructions", null);
+  game.add.button(200, 200, "levelOne", () => {
+    game.state.start("levelOne");
+  });
+  game.add.button(200, 275, "levelTwo", () => {
+    game.state.start("levelTwo");
+  });
+  game.add.button(200, 350, "levelThree", () => {
+    game.state.start("levelThree");
+  });
+}
+
+function preloadLevel() {
   game.load.image("red", "./assets/red_gem.png");
   game.load.image("green", "./assets/green_gem.png");
   game.load.image("blue", "./assets/blue_gem.png");
@@ -17,14 +53,18 @@ function preload() {
   game.load.image("purple", "./assets/purple_gem.png");
   game.load.image("white", "./assets/white_gem.png");
   game.load.image("background", "./assets/background.png");
+  game.load.image("redo", "./assets/redo.png");
+  game.load.image("wood", "./assets/wood.png");
+  game.load.image("startButton", "./assets/start_button.png");
+  game.load.image("nextLevel", "./assets/next_level_button.png");
 }
 
-const redPercentage = 0.29;
-const greenPercentage = 0.53;
-const bluePercentage = 0.72;
-const yellowPercentage = 0.86;
-const orangePercentage = 0.96;
-const purplePercentage = 1;
+const redPercentage = 0.29; // 29%
+const greenPercentage = 0.53; // 24%
+const bluePercentage = 0.72; // 19%
+const yellowPercentage = 0.86; // 14%
+const orangePercentage = 0.96; // 10%
+const purplePercentage = 1; // 4%
 const startingPositionX = 105;
 const startingPositionY = 5;
 const rows = 10;
@@ -38,17 +78,60 @@ let movesText;
 let goalText;
 let scoreText;
 let started = false;
+let goalScore;
+let menuBackground;
+let startButton;
+let menuText;
+let moves;
+let goal;
+let goalColor;
+let specialObject;
+let level;
+let goalGemSprite;
+let nextLevel;
 
-function create() {
+function createLevel() {
   game.stage.disableVisibilityChange = true;
 
   game.add.tileSprite(0, 0, 500, 500, "background");
+
+  menuBackground = game.add.tileSprite(100, 50, 300, 400, "wood");
+
+  startButton = game.add.button(250, 400, "startButton", initLevel);
+  startButton.anchor.set(0.5);
+
+  moves = game.state.getCurrentState().moves;
+  goal = game.state.getCurrentState().goal;
+  goalColor = game.state.getCurrentState().goalColor;
+  level = game.state.getCurrentState().level;
+  goalScore = getGoalScore();
+  nextLevel = game.state.getCurrentState().nextLevel;
+
+  menuText = game.add.text(
+    250,
+    200,
+    `Level ${level}\n\n\nYour goal is:\n\n${goal}     \n\nYou have:\n ${moves} moves\n\nYour goal score is:\n${goalScore}\n\nGood luck!`,
+    {
+      fontSize: "18px",
+      fill: "white",
+      align: "center",
+    }
+  );
+  menuText.anchor.set(0.5);
+
+  goalGemSprite = game.add.sprite(250, 150, goalColor);
+}
+
+function initLevel() {
+  startButton.visible = false;
+  menuBackground.visible = false;
+  menuText.visible = false;
 
   game.add.text(5, 70, "Moves:", {
     fontSize: "28px",
     fill: "black",
   });
-  movesText = game.add.text(35, 100, game.state.getCurrentState().moves, {
+  movesText = game.add.text(35, 100, moves, {
     fontSize: "28px",
     fill: "black",
   });
@@ -57,11 +140,13 @@ function create() {
     fontSize: "28px",
     fill: "black",
   });
-  game.add.sprite(5, 240, game.state.getCurrentState().goalColor);
-  goalText = game.add.text(50, 240, game.state.getCurrentState().goal, {
+  goalText = game.add.text(50, 240, goal, {
     fontSize: "28px",
     fill: "black",
   });
+
+  goalGemSprite.x = 5;
+  goalGemSprite.y = 240;
 
   game.add.text(5, 410, "Score:", {
     fontSize: "28px",
@@ -71,8 +156,39 @@ function create() {
     fontSize: "28px",
     fill: "black",
   });
+
+  game.add.button(
+    game.world.width - 45,
+    game.world.height - 45,
+    "redo",
+    redoLevel
+  );
+
   generateGems();
   destroy();
+}
+
+function redoLevel() {
+  game.state.restart();
+}
+
+function getGoalScore() {
+  switch (goalColor) {
+    case "red":
+      return 10 * goal * 2;
+    case "green":
+      return 20 * goal * 2;
+    case "blue":
+      return 30 * goal * 2;
+    case "yellow":
+      return 40 * goal * 2;
+    case "orange":
+      return 50 * goal * 2;
+    case "purple":
+      return 60 * goal * 2;
+    default:
+      return null;
+  }
 }
 
 function generateGems() {
@@ -91,33 +207,12 @@ function generateGems() {
 
   for (let i = 0; i < rows; i++) {
     for (let j = 0; j < columns; j++) {
-      let random = Math.random();
       let gem;
 
       if (hasSpecialObject && iSpecial === i && jSpecial === j) {
-        gem = gems.create(positionX, positionY, "white");
-        gem.score = 100;
-        gem.special = true;
+        gem = generateSpecialGem(positionX, positionY);
       } else {
-        if (random < redPercentage) {
-          gem = gems.create(positionX, positionY, "red");
-          gem.score = 10;
-        } else if (random >= redPercentage && random < greenPercentage) {
-          gem = gems.create(positionX, positionY, "green");
-          gem.score = 20;
-        } else if (random >= greenPercentage && random < bluePercentage) {
-          gem = gems.create(positionX, positionY, "blue");
-          gem.score = 30;
-        } else if (random >= bluePercentage && random < yellowPercentage) {
-          gem = gems.create(positionX, positionY, "yellow");
-          gem.score = 40;
-        } else if (random >= yellowPercentage && random < orangePercentage) {
-          gem = gems.create(positionX, positionY, "orange");
-          gem.score = 50;
-        } else {
-          gem = gems.create(positionX, positionY, "purple");
-          gem.score = 60;
-        }
+        gem = generateColoredGem(positionX, positionY);
       }
 
       gem.i = i;
@@ -137,6 +232,38 @@ function generateGems() {
       }
     }
   }
+}
+
+function generateSpecialGem(positionX, positionY) {
+  let gem = gems.create(positionX, positionY, "white");
+  gem.score = 100;
+  gem.special = true;
+  return gem;
+}
+
+function generateColoredGem(x, y) {
+  let gem;
+  let random = Math.random();
+  if (random < redPercentage) {
+    gem = gems.create(x, y, "red");
+    gem.score = 10;
+  } else if (random >= redPercentage && random < greenPercentage) {
+    gem = gems.create(x, y, "green");
+    gem.score = 20;
+  } else if (random >= greenPercentage && random < bluePercentage) {
+    gem = gems.create(x, y, "blue");
+    gem.score = 30;
+  } else if (random >= bluePercentage && random < yellowPercentage) {
+    gem = gems.create(x, y, "yellow");
+    gem.score = 40;
+  } else if (random >= yellowPercentage && random < orangePercentage) {
+    gem = gems.create(x, y, "orange");
+    gem.score = 50;
+  } else {
+    gem = gems.create(x, y, "purple");
+    gem.score = 60;
+  }
+  return gem;
 }
 
 function selectGem(gem) {
@@ -164,7 +291,7 @@ function getGem(i, j) {
 function playerSwap(gemOne, gemTwo) {
   started = true;
   if (!isSwapValid(gemOne, gemTwo)) return;
-  game.state.getCurrentState().moves--;
+  moves--;
   updateMoves();
 
   swapGems(gemOne, gemTwo);
@@ -178,8 +305,45 @@ function playerSwap(gemOne, gemTwo) {
   if (!check) setTimeout(swapGems, 1000, gemOne, gemTwo);
 
   setTimeout(destroy, 500);
+}
 
-  // TODO: ако е невалидно, не се прај destroy
+function checkLevelEnd() {
+  if (moves === 0 && goal !== 0) {
+    showEndMenu("lose");
+  }
+  if (goal === 0) {
+    showEndMenu("win");
+  }
+}
+
+function showEndMenu(outcome) {
+  if (outcome === "win") {
+    menuBackground.visible = true;
+    menuBackground.bringToTop();
+    menuText.visible = true;
+    menuText.text = `Congratulations!\n\n You won with score:\n${score}`;
+    menuText.bringToTop();
+    if (level !== 3) game.add.button(200, 350, "nextLevel", startNextLevel);
+    else menuText.text + "\nYou won the game!";
+  } else if (outcome === "lose") {
+    menuBackground.visible = true;
+    menuBackground.bringToTop();
+    menuText.visible = true;
+    menuText.text = `You lost!\n\n
+    Your score was:\n
+    ${score}\n
+    Your remaining moves:\n
+    ${moves}\n
+    Your remaining gems for goal:\n
+    ${goal}`;
+    menuText.bringToTop();
+    startButton.visible = true;
+    startButton.bringToTop();
+  }
+}
+
+function startNextLevel() {
+  game.state.start(nextLevel);
 }
 
 function specialDestroy(gemOne) {
@@ -194,7 +358,9 @@ function specialDestroy(gemOne) {
   }
 
   for (let gem of gemsToDestroy) kill(gem);
-  align();
+
+  setTimeout(align, 500);
+  setTimeout(destroy, 1500);
 }
 
 function isSwapValid(gemOne, gemTwo) {
@@ -206,8 +372,8 @@ function isSwapValid(gemOne, gemTwo) {
 }
 
 function updateMoves() {
-  if (game.state.getCurrentState().moves === 0) console.log("end"); // end game here
-  movesText.text = game.state.getCurrentState().moves;
+  if (moves === 0) console.log("end"); // end game here
+  movesText.text = moves;
 }
 
 function swapGems(gemOne, gemTwo) {
@@ -327,8 +493,7 @@ function similarToDown(gem) {
 function kill(gem) {
   if (started && !gem.killed) {
     score += gem.score;
-    game.state.getCurrentState().goal -=
-      gem.key === game.state.getCurrentState().goalColor ? 1 : 0;
+    goal -= gem.key === goalColor ? 1 : 0;
 
     updateScore();
     updateGoal();
@@ -349,7 +514,9 @@ function kill(gem) {
   gem.i = -1;
   gem.j = -1;
   gem.killed = true;
-  moveGem(gem, 11, 1);
+  moveGem(gem, 11, -2);
+
+  checkLevelEnd();
 }
 
 function updateScore() {
@@ -357,11 +524,11 @@ function updateScore() {
 }
 
 function updateGoal() {
-  if (game.state.getCurrentState().goal < 0) {
-    game.state.getCurrentState().goal = 0;
+  if (goal < 0) {
+    goal = 0;
     // end level
   }
-  goalText.text = game.state.getCurrentState().goal;
+  goalText.text = goal;
 }
 
 function align() {
@@ -395,28 +562,8 @@ function createNewGems() {
 
 function createNewGem(i, j) {
   let x = j * gemSideSize + startingPositionX;
-  let random = Math.random();
-  let gem;
-
-  if (random < redPercentage) {
-    gem = gems.create(x, startingPositionY - gemSideSize, "red");
-    gem.score = 10;
-  } else if (random >= redPercentage && random < greenPercentage) {
-    gem = gems.create(x, startingPositionY - gemSideSize, "green");
-    gem.score = 20;
-  } else if (random >= greenPercentage && random < bluePercentage) {
-    gem = gems.create(x, startingPositionY - gemSideSize, "blue");
-    gem.score = 30;
-  } else if (random >= bluePercentage && random < yellowPercentage) {
-    gem = gems.create(x, startingPositionY - gemSideSize, "yellow");
-    gem.score = 40;
-  } else if (random >= yellowPercentage && random < orangePercentage) {
-    gem = gems.create(x, startingPositionY - gemSideSize, "orange");
-    gem.score = 50;
-  } else {
-    gem = gems.create(x, startingPositionY - gemSideSize, "purple");
-    gem.score = 60;
-  }
+  let y = startingPositionY - gemSideSize;
+  let gem = generateColoredGem(x, y);
 
   gem.i = i;
   gem.j = j;
@@ -429,16 +576,25 @@ function createNewGem(i, j) {
   moveGem(gem, gem.i, gem.j);
 }
 
-function generateLevel(goalColor, goal, moves, specialObject = false) {
+function generateLevel(
+  goalColor,
+  goal,
+  moves,
+  level,
+  specialObject = false,
+  nextLevel
+) {
   const object = new Phaser.State();
 
   object.goalColor = goalColor;
   object.goal = goal;
   object.moves = moves;
+  object.level = level;
   object.specialObject = specialObject;
+  object.nextLevel = nextLevel;
 
-  object.preload = preload;
-  object.create = create;
+  object.preload = preloadLevel;
+  object.create = createLevel;
 
   return object;
 }
