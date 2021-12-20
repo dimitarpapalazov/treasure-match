@@ -1,6 +1,6 @@
-let levelOne = generateLevel("red", 15, 15, 1, false, "levelTwo");
-let levelTwo = generateLevel("green", 15, 15, 2, false, "levelThree");
-let levelThree = generateLevel("orange", 15, 15, 3, true);
+let levelOne = generateLevel("red", 15, 10, 1, false, "levelTwo");
+let levelTwo = generateLevel("green", 20, 10, 2, false, "levelThree");
+let levelThree = generateLevel("orange", 20, 10, 3, true);
 
 let mainMenu = new Phaser.State();
 mainMenu.preload = preloadMainMenu;

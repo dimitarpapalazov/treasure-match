@@ -11,6 +11,8 @@ function preloadLevel() {
   game.load.image("wood", "./assets/wood.png");
   game.load.image("startButton", "./assets/start_button.png");
   game.load.image("nextLevel", "./assets/next_level_button.png");
+  game.load.image("star", "./assets/star.png");
+  game.load.image("starGold", "./assets/star_gold.png");
 }
 
 const redPercentage = 0.29; // 29%
@@ -27,11 +29,11 @@ const gemSideSize = 39;
 
 let gems;
 let selectedGem;
-let score = 0;
+let score;
 let movesText;
 let goalText;
 let scoreText;
-let started = false;
+let started;
 let goalScore;
 let menuBackground;
 let startButton;
@@ -43,6 +45,7 @@ let specialObject;
 let level;
 let goalGemSprite;
 let nextLevel;
+let stars;
 
 function createLevel() {
   game.stage.disableVisibilityChange = true;
@@ -60,6 +63,9 @@ function createLevel() {
   level = game.state.getCurrentState().level;
   goalScore = getGoalScore();
   nextLevel = game.state.getCurrentState().nextLevel;
+
+  started = false;
+  score = 0;
 
   menuText = game.add.text(
     250,
@@ -113,10 +119,15 @@ function initLevel() {
 
   game.add.button(
     game.world.width - 45,
-    game.world.height - 45,
+    game.world.height - 75,
     "redo",
     redoLevel
   );
+
+  stars = game.add.group();
+  stars.create(210, game.world.height - 75, "star");
+  stars.create(250, game.world.height - 75, "star");
+  stars.create(290, game.world.height - 75, "star");
 
   generateGems();
   destroy();
@@ -243,6 +254,7 @@ function getGem(i, j) {
 }
 
 function playerSwap(gemOne, gemTwo) {
+  if (gemTwo === null) return;
   started = true;
   if (!isSwapValid(gemOne, gemTwo)) return;
   moves--;
@@ -279,6 +291,14 @@ function showEndMenu(outcome) {
     menuText.text = `Congratulations!\n\n You won with score:\n${score}`;
     menuText.bringToTop();
 
+    stars.getAt(1).y = 250;
+    stars.getAt(0).y = 250;
+    stars.getAt(2).y = 250;
+    stars.getAt(0).centerX = game.world.centerX - 40;
+    stars.getAt(1).centerX = game.world.centerX;
+    stars.getAt(2).centerX = game.world.centerX + 40;
+    game.world.bringToTop(stars);
+
     if (level !== 3) game.add.button(200, 350, "nextLevel", startNextLevel);
     else menuText.text + "\nYou won the game!";
   } else if (outcome === "lose") {
@@ -301,8 +321,6 @@ function showEndMenu(outcome) {
 }
 
 function startNextLevel() {
-  started = false;
-  score = 0;
   game.state.start(nextLevel);
 }
 
@@ -452,11 +470,13 @@ function similarToDown(gem) {
 
 function kill(gem) {
   if (started && !gem.killed) {
-    score += gem.score;
     goal -= gem.key === goalColor ? 1 : 0;
-
-    updateScore();
     updateGoal();
+
+    if (goal !== 0) {
+      score += gem.score;
+      updateScore();
+    }
   }
 
   game.add
@@ -477,6 +497,19 @@ function kill(gem) {
   moveGem(gem, 11, -2);
 
   checkLevelEnd();
+
+  updateStars();
+}
+
+function updateStars() {
+  let percentage = Math.floor((score / goalScore) * 100);
+  if (percentage > 33 && percentage < 67)
+    stars.getAt(0).loadTexture("starGold");
+
+  if (percentage >= 67 && percentage < 100)
+    stars.getAt(1).loadTexture("starGold");
+
+  if (percentage > 100) stars.getAt(2).loadTexture("starGold");
 }
 
 function updateScore() {
