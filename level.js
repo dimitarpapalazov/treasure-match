@@ -361,7 +361,6 @@ function isSwapValid(gemOne, gemTwo) {
 }
 
 function updateMoves() {
-  if (moves === 0) console.log("end"); // end game here
   movesText.text = moves;
 }
 
@@ -383,21 +382,37 @@ function swapGems(gemOne, gemTwo) {
 function moveGem(gem, i, j) {
   let x = j * gemSideSize + startingPositionX;
   let y = i * gemSideSize + startingPositionY;
-  game.add
-    .tween(gem)
-    .to(
-      {
-        x: x,
-        y: y,
-      },
-      250,
-      "Linear",
-      true
-    )
-    .start();
+  if (started)
+    game.add
+      .tween(gem)
+      .to(
+        {
+          x: x,
+          y: y,
+        },
+        250,
+        "Linear",
+        true
+      )
+      .start();
+  else
+    game.add
+      .tween(gem)
+      .to(
+        {
+          x: x,
+          y: y,
+        },
+        1,
+        "Linear",
+        true
+      )
+      .start();
 }
 
 function destroy(check = false) {
+  changeInput(false);
+
   let destroyed = false;
   const gemsForDestroying = [];
 
@@ -441,12 +456,19 @@ function destroy(check = false) {
     kill(g);
   }
 
-  if (destroyed) {
+  if (destroyed && started) {
     setTimeout(align, 500);
     setTimeout(destroy, 1500);
   }
+  if (destroyed && !started) {
+    align();
+    destroy();
+  }
+  setTimeout(changeInput, 500, true);
+}
 
-  return destroyed;
+function changeInput(value) {
+  gems.forEach((g) => (g.inputEnabled = value));
 }
 
 function similarToRight(gem) {
@@ -490,17 +512,30 @@ function kill(gem) {
     }
   }
 
-  game.add
-    .tween(gem)
-    .to(
-      {
-        alpha: 0,
-      },
-      1000,
-      "Linear",
-      true
-    )
-    .start();
+  if (started)
+    game.add
+      .tween(gem)
+      .to(
+        {
+          alpha: 0,
+        },
+        1000,
+        "Linear",
+        true
+      )
+      .start();
+  else
+    game.add
+      .tween(gem)
+      .to(
+        {
+          alpha: 0,
+        },
+        1,
+        "Linear",
+        true
+      )
+      .start();
 
   gem.i = -1;
   gem.j = -1;
@@ -557,7 +592,8 @@ function createNewGems() {
   for (let i = rows - 1; i >= 0; i--) {
     for (let j = columns - 1; j >= 0; j--) {
       if (!getGem(i, j)) {
-        setTimeout(createNewGem, 500, i, j);
+        if (started) setTimeout(createNewGem, 500, i, j);
+        else createNewGem(i, j);
       }
     }
   }
