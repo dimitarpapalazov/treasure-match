@@ -282,6 +282,8 @@ function playerSwap(gemOne, gemTwo) {
   if (!check) setTimeout(swapGems, 1000, gemOne, gemTwo);
 
   setTimeout(destroy, 500);
+
+  setTimeout(checkLevelEnd, 1000);
 }
 
 function checkLevelEnd() {
@@ -326,8 +328,9 @@ function showEndMenu(outcome) {
     ${goal}`;
     menuText.bringToTop();
 
-    startButton.visible = true;
-    startButton.bringToTop();
+    game.add
+      .button(game.world.width / 2, 400, "startButton", redoLevel)
+      .anchor.set(0.5, 0.5);
   }
 }
 
@@ -541,8 +544,6 @@ function kill(gem) {
   gem.j = -1;
   gem.killed = true;
   moveGem(gem, 11, -2);
-
-  checkLevelEnd();
 
   updateStars();
 }
