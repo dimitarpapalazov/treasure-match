@@ -135,7 +135,41 @@ function selectGemInstructions(gem) {
 function releaseGemInstructions() {
   let i = Math.floor((game.input.mousePointer.position.y - startingY) / 40);
   let j = Math.floor((game.input.mousePointer.position.x - startingX) / 40);
-  playerSwapInstructions(selectedGemInstructions, getGemInstructions(i, j));
+  let iDiff = selectedGemInstructions.i - i;
+  let jDiff = selectedGemInstructions.j - j;
+  if (iDiff >= 1) {
+    playerSwapInstructions(
+      selectedGemInstructions,
+      getGemInstructions(
+        selectedGemInstructions.i - 1,
+        selectedGemInstructions.j
+      )
+    );
+  } else if (iDiff <= -1) {
+    playerSwapInstructions(
+      selectedGemInstructions,
+      getGemInstructions(
+        selectedGemInstructions.i + 1,
+        selectedGemInstructions.j
+      )
+    );
+  } else if (jDiff >= 1) {
+    playerSwapInstructions(
+      selectedGemInstructions,
+      getGemInstructions(
+        selectedGemInstructions.i,
+        selectedGemInstructions.j - 1
+      )
+    );
+  } else if (jDiff <= -1) {
+    playerSwapInstructions(
+      selectedGemInstructions,
+      getGemInstructions(
+        selectedGemInstructions.i,
+        selectedGemInstructions.j + 1
+      )
+    );
+  }
 }
 
 function playerSwapInstructions(gemOne, gemTwo) {
