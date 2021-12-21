@@ -8,6 +8,8 @@ function preloadMainMenu() {
 }
 
 function createMainMenu() {
+  game.stage.disableVisibilityChange = true;
+
   game.add.tileSprite(0, 0, 500, 500, "background");
 
   game.add.tileSprite(100, 50, 300, 400, "wood");
@@ -18,7 +20,9 @@ function createMainMenu() {
     align: "center",
   });
 
-  game.add.button(200, 125, "instructions", null);
+  game.add.button(200, 125, "instructions", () => {
+    game.state.start("instructions");
+  });
   game.add.button(200, 200, "levelOne", () => {
     game.state.start("levelOne");
   });

@@ -13,6 +13,7 @@ function preloadLevel() {
   game.load.image("nextLevel", "./assets/next_level_button.png");
   game.load.image("star", "./assets/star.png");
   game.load.image("starGold", "./assets/star_gold.png");
+  game.load.image("exitButton", "./assets/exit_button.png");
 }
 
 const redPercentage = 0.29; // 29%
@@ -96,17 +97,17 @@ function initLevel() {
     fill: "black",
   });
 
-  game.add.text(5, 205, "Goal:", {
+  game.add.text(5, 220, "Goal:", {
     fontSize: "28px",
     fill: "black",
   });
-  goalText = game.add.text(50, 240, goal, {
+  goalText = game.add.text(50, 255, goal, {
     fontSize: "28px",
     fill: "black",
   });
 
   goalGemSprite.x = 5;
-  goalGemSprite.y = 240;
+  goalGemSprite.y = 255;
 
   game.add.text(5, 410, "Score:", {
     fontSize: "28px",
@@ -129,6 +130,10 @@ function initLevel() {
   stars.create(250, game.world.height - 75, "star");
   stars.create(290, game.world.height - 75, "star");
 
+  game.add.button(0, 0, "exitButton", () => {
+    game.state.start("mainMenu");
+  });
+
   generateGems();
   destroy();
 }
@@ -140,17 +145,17 @@ function redoLevel() {
 function getGoalScore() {
   switch (goalColor) {
     case "red":
-      return 10 * goal * 2;
+      return 10 * goal * 3;
     case "green":
-      return 20 * goal * 2;
+      return 20 * goal * 3;
     case "blue":
-      return 30 * goal * 2;
+      return 30 * goal * 3;
     case "yellow":
-      return 40 * goal * 2;
+      return 40 * goal * 3;
     case "orange":
-      return 50 * goal * 2;
+      return 50 * goal * 3;
     case "purple":
-      return 60 * goal * 2;
+      return 60 * goal * 3;
     default:
       return null;
   }
@@ -161,6 +166,7 @@ function generateGems() {
 
   let positionX = startingPositionX;
   let positionY = startingPositionY;
+
   let hasSpecialObject = game.state.getCurrentState().specialObject;
   let iSpecial;
   let jSpecial;
@@ -255,8 +261,11 @@ function getGem(i, j) {
 
 function playerSwap(gemOne, gemTwo) {
   if (gemTwo === null) return;
+
   started = true;
+
   if (!isSwapValid(gemOne, gemTwo)) return;
+
   moves--;
   updateMoves();
 
@@ -264,6 +273,8 @@ function playerSwap(gemOne, gemTwo) {
 
   if (gemOne.special) {
     setTimeout(specialDestroy, 500, gemOne);
+  } else if (gemTwo.special) {
+    setTimeout(specialDestroy, 500, gemTwo);
   }
 
   let check = destroy(true);
@@ -519,7 +530,6 @@ function updateScore() {
 function updateGoal() {
   if (goal < 0) {
     goal = 0;
-    // end level
   }
   goalText.text = goal;
 }
