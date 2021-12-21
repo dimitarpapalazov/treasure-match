@@ -248,7 +248,17 @@ function releaseGem() {
   let j = Math.floor(
     (game.input.mousePointer.position.x - startingPositionX) / gemSideSize
   );
-  playerSwap(selectedGem, getGem(i, j));
+  let iDiff = selectedGem.i - i;
+  let jDiff = selectedGem.j - j;
+  if (iDiff >= 1) {
+    playerSwap(selectedGem, getGem(selectedGem.i - 1, selectedGem.j));
+  } else if (iDiff <= -1) {
+    playerSwap(selectedGem, getGem(selectedGem.i + 1, selectedGem.j));
+  } else if (jDiff >= 1) {
+    playerSwap(selectedGem, getGem(selectedGem.i, selectedGem.j - 1));
+  } else if (jDiff <= -1) {
+    playerSwap(selectedGem, getGem(selectedGem.i, selectedGem.j + 1));
+  }
 }
 
 function getGem(i, j) {
