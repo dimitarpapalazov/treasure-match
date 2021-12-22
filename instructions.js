@@ -35,7 +35,8 @@ function createInstruction() {
   game.add.text(
     275,
     25,
-    `We have special object.\n
+    `We have WHITE\n
+    special object.\n
     Try to move it in\n
     any direction you want.\n
     It will destroy\n
